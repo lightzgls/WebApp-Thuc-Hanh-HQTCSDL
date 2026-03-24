@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SQL Query Playground</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: rgba(30, 41, 59, 0.7);
+            --border-color: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-primary: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.15) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px; /* Wider container */
+            background: var(--container-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: slideUp 0.5s ease-out;
+            
+            /* Two column layout basis */
+            display: flex;
+            flex-direction: column;
+            height: 90vh; /* Takes most of the screen */
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            flex-grow: 1;
+            min-height: 0; /* Important for scrollable children in grid */
+        }
+
+        .left-col {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-col {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+            margin-bottom: 1.5rem;
+        }
+
+        textarea {
+            width: 100%;
+            flex-grow: 1; /* Makes textarea expand to take space */
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1rem;
+            color: #e2e8f0;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 1rem;
+            line-height: 1.5;
+            resize: none; /* Disable manual resize since it auto-fills space */
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        button {
+            background: var(--accent-primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .status {
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-right: 0.5rem;
+        }
+
+        .status.success { color: var(--success); }
+        .status.error { color: var(--error); }
+
+        .table-wrapper {
+            overflow: auto;
+            flex-grow: 1;
+            height: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            position: relative;
+        }
+
+        th, td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap; /* Keep table data from wrapping in 2-col mode */
+        }
+
+        th {
+            background: #1e293b;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .empty-state {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        /* Responsive stack for smaller screens */
+        @media (max-width: 900px) {
+            .container {
+                height: auto;
+            }
+            .main-content {
+                grid-template-columns: 1fr;
+                height: calc(100vh - 8rem);
+            }
+            .editor-container {
+                height: 40vh; /* Fixed height on mobile */
+                flex-grow: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>SQL Query Playground</h1>
+            <p class="subtitle">Write SQL. Run it instantly. Connected to your database.</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Left Column: Editor & Controls -->
+            <div class="left-col">
+                <div class="editor-container">
+                    <textarea id="sqlInput" spellcheck="false" placeholder="Write your SQL query here...&#10;Try: SELECT * FROM PC">SELECT * FROM Manufacturer;</textarea>
+                </div>
+                
+                <div class="controls">
+                    <button id="runBtn" title="Run query (Ctrl+Enter)">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                        Run Query
+                    </button>
+                    <div id="statusMsg" class="status"></div>
+                </div>
+            </div>
+
+            <!-- Right Column: Results Table -->
+            <div class="right-col">
+                <div class="table-wrapper">
+                    <table id="resultTable">
+                        <thead>
+                            <tr id="tableHead"></tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <tr>
+                                <td class="empty-state" colspan="100%">Run a query to see results here</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sqlInput = document.getElementById('sqlInput');
+        const runBtn = document.getElementById('runBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const tableHead = document.getElementById('tableHead');
+        const tableBody = document.getElementById('tableBody');
+
+        const renderTable = (data) => {
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+
+            if (!data || data.length === 0) {
+                tableBody.innerHTML = '<tr><td class="empty-state" colspan="100%">No results found or query did not return data.</td></tr>';
+                return;
+            }
+
+            // Extract headers
+            const columns = Object.keys(data[0]);
+            
+            // Create Header Row
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                tableHead.appendChild(th);
+            });
+
+            // Create Data Rows
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    // Format output
+                    let val = row[col];
+                    if (val === null || val === undefined) val = 'NULL';
+                    else if (typeof val === 'object') val = JSON.stringify(val);
+                    td.textContent = val;
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+        };
+
+        const runQuery = async () => {
+            const query = sqlInput.value.trim();
+            if (!query) return;
+
+            statusMsg.textContent = 'Running...';
+            statusMsg.className = 'status';
+
+            try {
+                const startTime = performance.now();
+                const response = await fetch('/api/query', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                
+                const result = await response.json();
+                const endTime = performance.now();
+
+                if (!response.ok) {
+                    throw new Error(result.error || 'Server error');
+                }
+
+                if (result.data && result.data.length > 0) {
+                    renderTable(result.data);
+                } else if (result.rowsAffected && result.rowsAffected.length > 0) {
+                    renderTable([{ 'Rows Affected': result.rowsAffected[0] }]);
+                } else {
+                    renderTable([{ 'Result': 'Success (No data returned)' }]);
+                }
+
+                statusMsg.textContent = `Success (${(endTime - startTime).toFixed(1)}ms)`;
+                statusMsg.className = 'status success';
+            } catch (err) {
+                console.error(err);
+                tableHead.innerHTML = '';
+                tableBody.innerHTML = `<tr><td class="empty-state" colspan="100%" style="color: var(--error)">Error executing query</td></tr>`;
+                statusMsg.textContent = err.message || 'Error occurred';
+                statusMsg.className = 'status error';
+            }
+        };
+
+        runBtn.addEventListener('click', runQuery);
+        
+        // Allow Ctrl+Enter or Cmd+Enter to run query
+        sqlInput.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                runQuery();
+            }
+        });
+    </script>
+</body>
+</html>
